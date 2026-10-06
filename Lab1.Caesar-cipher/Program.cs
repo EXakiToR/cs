@@ -1,9 +1,14 @@
-﻿namespace Lab1.Caesar_cipher;
+﻿using System;
+using System.Text;
+
+namespace Lab1.Caesar_cipher;
 
 internal class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("Hello, World!");
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding = Encoding.UTF8;
+        ConsoleUI.RunLoop();
     }
 }
