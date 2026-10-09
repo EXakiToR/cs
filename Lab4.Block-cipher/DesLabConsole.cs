@@ -273,7 +273,7 @@ internal static class DesLabConsole
             if (input.Equals("R", StringComparison.OrdinalIgnoreCase))
             {
                 var random = new Random();
-                var key = BitUtils.RandomHex(8, random);
+                var key = BitUtils.RandomHex(16, random);
                 Console.WriteLine($"Random key = {key}");
                 return BitUtils.HexToBits(key);
             }
@@ -306,7 +306,7 @@ internal static class DesLabConsole
             if (input.Equals("R", StringComparison.OrdinalIgnoreCase))
             {
                 var random = new Random();
-                var message = BitUtils.RandomHex(8, random);
+                var message = BitUtils.RandomHex(16, random);
                 Console.WriteLine($"Random message seed = {message}");
                 return BitUtils.HexToBits(message);
             }
