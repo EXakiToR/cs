@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Text;
 
 namespace Lab3.Polyalphabetic_ciphers;
 
@@ -6,79 +8,94 @@ internal class Program
 {
     static void Main(string[] args)
     {
-        Console.OutputEncoding = System.Text.Encoding.UTF8;
-        Console.WriteLine("Playfair cipher (Romanian alphabet, 31 letters)\n");
+        Console.InputEncoding = Encoding.UTF8;
+        Console.OutputEncoding = Encoding.UTF8;
 
-        Console.WriteLine("Allowed letters:");
-        Console.WriteLine(PlayfairCipher.AllowedLettersList());
-        Console.WriteLine();
-
-        Console.Write("Operation (E)ncrypt / (D)ecrypt: ");
-        var op = Console.ReadLine()?.Trim().ToUpperInvariant();
-        if (op != "E" && op != "D")
+        while (true)
         {
-            Console.WriteLine("Invalid operation. Enter 'E' or 'D'.");
-            return;
-        }
+            Console.WriteLine("Playfair cipher (Romanian alphabet, 31 letters)");
+            Console.WriteLine("Allowed letters:");
+            Console.WriteLine(PlayfairCipher.AllowedLettersList());
+            Console.WriteLine();
+            Console.WriteLine("Choose operation:");
+            Console.WriteLine("  E - encrypt");
+            Console.WriteLine("  D - decrypt");
+            Console.WriteLine("  X - exit");
+            Console.Write("Operation: ");
 
-        Console.Write("Key (minimum 7 letters): ");
-        var key = Console.ReadLine() ?? string.Empty;
-        if (key.Length < 7)
-        {
-            Console.WriteLine("Key too short. Minimum length is 7.");
-            return;
-        }
-
-        // validate key letters
-        foreach (var ch in key.ToUpperInvariant())
-        {
-            if (!PlayfairCipher.IsAllowedLetter(ch))
+            var op = (Console.ReadLine() ?? string.Empty).Trim().ToUpperInvariant();
+            if (op == "X")
             {
-                Console.WriteLine($"Key contains invalid character '{ch}'. Allowed letters: {PlayfairCipher.AllowedLettersList()}");
-                return;
-            }
-        }
-
-        if (op == "E")
-        {
-            Console.Write("Plaintext (letters only): ");
-            var pt = Console.ReadLine() ?? string.Empty;
-            // validate and prepare
-            var digraphs = PlayfairCipher.PrepareDigraphs(pt, out var error);
-            if (!string.IsNullOrEmpty(error))
-            {
-                Console.WriteLine(error);
                 return;
             }
 
-            try
+            if (op != "E" && op != "D")
             {
-                var cipher = PlayfairCipher.Encrypt(key, pt);
-                Console.WriteLine($"\nCiphertext: {cipher}");
-                Console.WriteLine("\nMatrix used:");
-                PlayfairCipher.PrintMatrix(PlayfairCipher.BuildMatrix(key));
+                Console.WriteLine("Invalid operation. Enter E, D, or X.");
+                Console.WriteLine();
+                continue;
             }
-            catch (Exception ex)
+
+            Console.Write("Key (minimum 7 letters): ");
+            var key = PlayfairCipher.NormalizeInput(Console.ReadLine() ?? string.Empty);
+            var keyLetters = key.Where(c => !char.IsWhiteSpace(c)).ToArray();
+            if (keyLetters.Length < 7)
             {
-                Console.WriteLine("Error: " + ex.Message);
+                Console.WriteLine("Key too short. Minimum length is 7 letters.");
+                Console.WriteLine();
+                continue;
             }
-        }
-        else
-        {
-            Console.Write("Ciphertext (letters only, even length): ");
-            var ct = Console.ReadLine() ?? string.Empty;
-            try
+
+            var invalidKeyChar = keyLetters.FirstOrDefault(ch => !PlayfairCipher.IsAllowedLetter(ch));
+            if (invalidKeyChar != default)
             {
-                var plain = PlayfairCipher.Decrypt(key, ct);
-                Console.WriteLine($"\nDecrypted (raw digraphs result): {plain}");
-                Console.WriteLine("\nMatrix used:");
-                PlayfairCipher.PrintMatrix(PlayfairCipher.BuildMatrix(key));
-                Console.WriteLine("\nNote: You may need to remove filler letters (X or Q) and reinsert spaces manually.");
+                Console.WriteLine($"Key contains invalid character '{invalidKeyChar}'. Allowed letters: {PlayfairCipher.AllowedLettersList()}");
+                Console.WriteLine();
+                continue;
             }
-            catch (Exception ex)
+
+            if (op == "E")
             {
-                Console.WriteLine("Error: " + ex.Message);
+                Console.Write("Plaintext (letters only): ");
+                var pt = Console.ReadLine() ?? string.Empty;
+                try
+                {
+                    var cipher = PlayfairCipher.Encrypt(key, pt);
+                    Console.WriteLine();
+                    Console.WriteLine($"Ciphertext: {cipher}");
+                    Console.WriteLine();
+                    Console.WriteLine("Matrix used:");
+                    PlayfairCipher.PrintMatrix(PlayfairCipher.BuildMatrix(key));
+                    Console.WriteLine();
+                    Console.WriteLine("Note: Reinsert spaces manually if needed.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
             }
+            else
+            {
+                Console.Write("Ciphertext (letters only, even length): ");
+                var ct = Console.ReadLine() ?? string.Empty;
+                try
+                {
+                    var plain = PlayfairCipher.Decrypt(key, ct);
+                    Console.WriteLine();
+                    Console.WriteLine($"Decrypted (raw digraphs result): {plain}");
+                    Console.WriteLine();
+                    Console.WriteLine("Matrix used:");
+                    PlayfairCipher.PrintMatrix(PlayfairCipher.BuildMatrix(key));
+                    Console.WriteLine();
+                    Console.WriteLine("Note: You may need to remove filler letters (X or Q) and reinsert spaces manually.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine();
         }
     }
 }
