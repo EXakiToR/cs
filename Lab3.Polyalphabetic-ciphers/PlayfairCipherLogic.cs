@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Lab3.Polyalphabetic_ciphers
 {
@@ -9,15 +10,25 @@ namespace Lab3.Polyalphabetic_ciphers
         // Romanian alphabet (31 letters) in uppercase order
         public static readonly string[] RomanianAlphabet = new[]
         {
-            "A","Ă","Â","B","C","D","E","F","G","H","I","Î","J","K","L","M","N","O","P","Q","R","S","Ș","T","Ț","U","V","W","X","Y","Z"
+            "A","Ă","Â","B","C","D","E","F","G","H","I","Î","J","K","L","M","N","O","P","Q","R","S","Ș","T","Ț","U","V","X","Y","Z"
         };
 
-        public static readonly int Rows = 6;
-        public static readonly int Cols = 6; // 6x6 = 36 cells (we have 31 letters)
+        public static readonly int Rows = 5;
+        public static readonly int Cols = 6; // 5x6 = 30 cells (W is excluded to keep the matrix letter-only)
+
+        public static string NormalizeInput(string input)
+        {
+            return (input ?? string.Empty)
+                .Normalize(NormalizationForm.FormC)
+                .Replace('Ş', 'Ș')
+                .Replace('ş', 'ș')
+                .Replace('Ţ', 'Ț')
+                .Replace('ţ', 'ț');
+        }
 
         public static char[,] BuildMatrix(string key)
         {
-            var keyChars = key.ToUpperInvariant().ToCharArray()
+            var keyChars = NormalizeInput(key).ToUpperInvariant().ToCharArray()
                 .Where(c => IsAllowedLetter(c))
                 .Distinct()
                 .ToList();
@@ -50,27 +61,6 @@ namespace Lab3.Polyalphabetic_ciphers
                 if (!placed.Contains(ch)) Place(ch);
             }
 
-            // fill remaining cells with digits if any
-            char fill = '0';
-            while (r < Rows)
-            {
-                if (matrix[r, c] == '\0')
-                {
-                    matrix[r, c] = fill;
-                    fill++;
-                    c++;
-                    if (c >= Cols)
-                    {
-                        c = 0; r++;
-                    }
-                }
-                else
-                {
-                    c++;
-                    if (c >= Cols) { c = 0; r++; }
-                }
-            }
-
             return matrix;
         }
 
@@ -80,6 +70,8 @@ namespace Lab3.Polyalphabetic_ciphers
             {
                 // normalize uppercase char (works for Unicode letters)
                 var up = char.ToUpperInvariant(ch);
+                if (up == 'Ş') up = 'Ș';
+                if (up == 'Ţ') up = 'Ț';
                 return RomanianAlphabet.Contains(up.ToString());
             }
             return false;
@@ -93,13 +85,14 @@ namespace Lab3.Polyalphabetic_ciphers
         public static List<(char, char)> PrepareDigraphs(string input, out string error)
         {
             error = string.Empty;
-            if (string.IsNullOrWhiteSpace(input))
+            var normalized = NormalizeInput(input);
+            if (string.IsNullOrWhiteSpace(normalized))
             {
                 error = "Input is empty.";
                 return new List<(char, char)>();
             }
 
-            var chars = input.ToUpperInvariant().ToCharArray().Where(c => !char.IsWhiteSpace(c)).ToList();
+            var chars = normalized.ToUpperInvariant().ToCharArray().Where(c => !char.IsWhiteSpace(c)).ToList();
             // validate
             foreach (var ch in chars)
             {
@@ -156,7 +149,7 @@ namespace Lab3.Polyalphabetic_ciphers
             var digraphs = PrepareDigraphs(plaintext, out var error);
             if (!string.IsNullOrEmpty(error)) throw new ArgumentException(error);
 
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             foreach (var (a, b) in digraphs)
             {
                 var pa = FindPosition(matrix, a);
@@ -190,7 +183,7 @@ namespace Lab3.Polyalphabetic_ciphers
         public static string Decrypt(string key, string ciphertext)
         {
             var matrix = BuildMatrix(key);
-            var chars = ciphertext.ToUpperInvariant().ToCharArray().Where(c => !char.IsWhiteSpace(c)).ToList();
+            var chars = NormalizeInput(ciphertext).ToUpperInvariant().ToCharArray().Where(c => !char.IsWhiteSpace(c)).ToList();
             foreach (var ch in chars)
             {
                 if (!IsAllowedLetter(ch))
@@ -201,7 +194,7 @@ namespace Lab3.Polyalphabetic_ciphers
 
             if (chars.Count % 2 != 0) throw new ArgumentException("Ciphertext length must be even.");
 
-            var sb = new System.Text.StringBuilder();
+            var sb = new StringBuilder();
             for (int i = 0; i < chars.Count; i += 2)
             {
                 var a = chars[i];
