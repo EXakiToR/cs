@@ -2,8 +2,10 @@ namespace Lab4.Block_cipher;
 
 internal static class DesTables
 {
+    // Final Permutation table (inverse of Initial Permutation)
     public static readonly int[] FinalPermutation =
     [
+        // Permutation mapping: position in output comes from position in input
         40, 8, 48, 16, 56, 24, 64, 32,
         39, 7, 47, 15, 55, 23, 63, 31,
         38, 6, 46, 14, 54, 22, 62, 30,
