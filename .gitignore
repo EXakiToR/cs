@@ -361,4 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/Lab5.PKI-and-DSA/Verify-Lab.ps1
+/Lab5.PKI-and-DSA/docs
+/Lab5.PKI-and-DSA/lab5-pki
