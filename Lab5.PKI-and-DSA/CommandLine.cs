@@ -1,5 +1,6 @@
 namespace Lab5.PKI_and_DSA;
 
+/// <summary>Lists the operations supported by the PKI command-line tool.</summary>
 internal enum PkiCommandKind
 {
     Help,
@@ -10,14 +11,30 @@ internal enum PkiCommandKind
     VerifySignature
 }
 
+/// <summary>
+/// Stores a parsed command for Program to dispatch to PkiService.
+/// Fields that do not apply to the selected operation remain null.
+/// </summary>
+/// <param name="Kind">The operation to execute.</param>
+/// <param name="UserName">The user whose certificate or key is involved.</param>
+/// <param name="FilePath">The file to sign or verify.</param>
+/// <param name="Subject">The certificate subject used when initializing the CA or issuing a certificate.</param>
 internal sealed record CliCommand(
     PkiCommandKind Kind,
     string? UserName = null,
     string? FilePath = null,
     SubjectName? Subject = null);
 
+/// <summary>
+/// Converts command-line arguments into commands and prints usage information.
+/// Cryptographic operations and user-name validation are handled by the PKI layer.
+/// </summary>
 internal static class CliParser
 {
+    /// <summary>Parses the command name, positional arguments, and certificate subject options.</summary>
+    /// <param name="args">Arguments supplied to the application, excluding its executable name.</param>
+    /// <returns>A command ready for dispatch, or Help when no arguments are supplied.</returns>
+    /// <exception cref="ArgumentException">The command is unknown or a required argument or option value is missing.</exception>
     public static CliCommand Parse(string[] args)
     {
         if (args.Length == 0)
@@ -25,6 +42,7 @@ internal static class CliParser
             return new CliCommand(PkiCommandKind.Help);
         }
 
+        // Normalize only the command name; preserve case in user names, paths, and subject values.
         var command = args[0].ToLowerInvariant();
         var tail = args.Skip(1).ToArray();
 
@@ -40,6 +58,8 @@ internal static class CliParser
         };
     }
 
+    /// <summary>Writes supported commands, subject options, and the default key policy.</summary>
+    /// <param name="writer">The destination for help text, normally Console.Out.</param>
     public static void PrintHelp(TextWriter writer)
     {
         writer.WriteLine("Lab 5 - PKI and DSA");
@@ -56,6 +76,7 @@ internal static class CliParser
         writer.WriteLine("  - User keys use RSA-2048 and issued certificates are valid for 365 days.");
     }
 
+    /// <summary>Reads a user name and optional certificate subject fields for issuance.</summary>
     private static CliCommand ParseUserCommand(PkiCommandKind kind, string[] args, string? defaultCommonName)
     {
         var options = ParseOptions(args, out var positional);
@@ -65,10 +86,12 @@ internal static class CliParser
         }
 
         var userName = positional[0];
+        // If no explicit default is supplied, use the user name as the subject's common name.
         var subject = BuildSubject(options, defaultCommonName ?? userName);
         return new CliCommand(kind, UserName: userName, Subject: subject);
     }
 
+    /// <summary>Reads the user name for an operation that needs no file or subject, such as revocation.</summary>
     private static CliCommand ParseNamedUserCommand(PkiCommandKind kind, string[] args)
     {
         var options = ParseOptions(args, out var positional);
@@ -80,6 +103,7 @@ internal static class CliParser
         return new CliCommand(kind, UserName: positional[0]);
     }
 
+    /// <summary>Reads the signer name followed by the file path for signing or verification.</summary>
     private static CliCommand ParseFileCommand(PkiCommandKind kind, string[] args)
     {
         var options = ParseOptions(args, out var positional);
@@ -91,12 +115,14 @@ internal static class CliParser
         return new CliCommand(kind, UserName: positional[0], FilePath: positional[1]);
     }
 
+    /// <summary>Extracts subject options from raw arguments, using the supplied common-name fallback.</summary>
     private static SubjectName BuildSubject(string[] args, string defaultCommonName)
     {
         var options = ParseOptions(args, out _);
         return BuildSubject(options, defaultCommonName);
     }
 
+    /// <summary>Maps CN, C, O, OU, and email options to X.509 subject fields.</summary>
     private static SubjectName BuildSubject(Dictionary<string, string> options, string defaultCommonName)
     {
         var commonName = GetOption(options, "cn") ?? defaultCommonName;
@@ -108,6 +134,14 @@ internal static class CliParser
             GetOption(options, "email"));
     }
 
+    /// <summary>
+    /// Separates positional arguments from case-insensitive options.
+    /// Accepts both --name=value and --name value; later duplicate options replace earlier ones.
+    /// Option names are collected here without checking whether a command supports them.
+    /// </summary>
+    /// <param name="args">Arguments following the command name.</param>
+    /// <param name="positional">Non-option arguments in their original order.</param>
+    /// <returns>A dictionary of option names without the leading two hyphens and their values.</returns>
     private static Dictionary<string, string> ParseOptions(string[] args, out List<string> positional)
     {
         positional = new List<string>();
@@ -126,6 +160,7 @@ internal static class CliParser
             string name;
             string value;
 
+            // Split on the first equals sign so additional equals signs remain part of the value.
             var equalsIndex = option.IndexOf('=');
             if (equalsIndex >= 0)
             {
@@ -140,6 +175,7 @@ internal static class CliParser
                     throw new ArgumentException($"Missing value for option '--{name}'.");
                 }
 
+                // Consume the next token as the value so it is not parsed again as a separate argument.
                 value = args[++index];
             }
 
@@ -149,6 +185,7 @@ internal static class CliParser
         return options;
     }
 
+    /// <summary>Returns an option value, or null when the option was omitted.</summary>
     private static string? GetOption(Dictionary<string, string> options, string name)
         => options.TryGetValue(name, out var value) ? value : null;
 }
